@@ -1,0 +1,60 @@
+version: '3.9'
+
+services:
+  main-app:
+    container_name: main-app
+    image: nest-with-postgres-app:1.0
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: development
+    env_file: .env
+    ports:
+      - '3000:3000'
+      - '9229:9229'
+    networks:
+      - app-network
+    volumes:
+      - .:/usr/src/
+    restart: unless-stopped
+    healthcheck:
+      test:     
+        ["CMD-SHELL", "curl --silent --fail -X GET http://localhost:3000 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+    depends_on:
+      database:
+        condition: service_healthy
+  database:
+    container_name: app_postgres_dev  
+    user: postgres
+    image: postgres:12
+    env_file: .env
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: pg_isready
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+  adminer:
+    image: adminer
+    restart: always
+    networks:
+      - app-network
+    ports:
+      - 8080:8080
+
+networks:
+  app-network:
+
+volumes:
+  postgres-data:
+  
